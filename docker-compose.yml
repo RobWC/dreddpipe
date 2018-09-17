@@ -1,0 +1,68 @@
+version: '3'
+
+services:
+  telegraf:
+    image: telegraf:latest
+    restart: always
+    volumes:
+      - ./configs/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    ports:
+     - "8092:8092/udp"
+     - "8094:8094"
+     - "8125:8125/udp"
+  # Define an InfluxDB service
+  influxdb:
+    image: influxdb:latest
+    restart: always
+    volumes:
+      - influxdb:/var/lib/influxdb
+    ports:
+      - "8086:8086"
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: always
+    ports:
+     - "3000:3000"
+    volumes:
+      - grafana:/var/lib/grafana
+    networks:
+     - roachnet
+  roach-ui:
+    image: cockroachdb/cockroach
+    command: start --insecure
+    restart: always
+    expose:
+     - "8080"
+     - "26257"
+    ports:
+     - "26257:26257"
+     - "8080:8080"
+    networks:
+     - roachnet
+    volumes:
+     - db-1:/cockroach/cockroach-data
+  db-2:
+    image: cockroachdb/cockroach
+    restart: always
+    command: start --insecure --join=roach-ui
+    networks:
+      - roachnet
+    volumes:
+      - db-2:/cockroach/cockroach-data
+  db-3:
+    image: cockroachdb/cockroach
+    command: start --insecure --join=roach-ui
+    restart: always
+    networks:
+      - roachnet
+    volumes:
+      - db-3:/cockroach/cockroach-data
+networks:
+  roachnet:
+volumes:
+  db-1:
+  db-2:
+  db-3:
+  grafana:
+  influxdb:
